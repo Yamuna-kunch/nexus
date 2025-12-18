@@ -1,0 +1,5 @@
+{
+  "name": "NexusVoice AI",
+  "description": "A production-ready, macOS-inspired dashboard for managing AI-powered calling agents, Twilio numbers, and integrations.",
+  "requestFramePermissions": []
+}
