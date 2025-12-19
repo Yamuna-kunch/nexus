@@ -211,7 +211,6 @@ const TestCallModal = ({ agent, onClose, allVoices }: { agent: Agent, onClose: (
       setIsProcessing(true);
       if (recognitionRef.current) recognitionRef.current.stop();
       updateTranscript({ role: 'user', text });
-      // Guideline fix: history parts are an array of objects.
       const historyForAI = transcriptRef.current.map(t => ({
           role: t.role === 'user' ? 'user' as const : 'model' as const,
           parts: [{ text: t.text }]
@@ -397,9 +396,8 @@ const Agents: React.FC = () => {
       setIsLoadingGhlData(true);
       setGhlDataError(null);
       try {
-          const isDemo = account.isDemo ?? true;
-          const fields = await GHLService.getCustomFields(account.apiKey, account.locationId, isDemo); 
-          const tags = await GHLService.getTags(account.apiKey, account.locationId, isDemo);
+          const fields = await GHLService.getCustomFields(account.apiKey, account.locationId); 
+          const tags = await GHLService.getTags(account.apiKey, account.locationId);
           setGhlCustomFields(fields);
           setGhlTags(tags);
       } catch (e: any) {
@@ -490,7 +488,6 @@ const Agents: React.FC = () => {
         name: newAgentName,
         role: newAgentRole || 'General Assistant',
         status: 'draft',
-        // Update default model to gemini-3 series.
         model: 'gemini-3-flash-preview',
         voiceId: availableVoices[0]?.id || 'v1',
         phoneNumbers: [],
@@ -576,7 +573,6 @@ const Agents: React.FC = () => {
           
           let fromNumber = allNumbers.find(n => n.assignedAgentId === editingAgent.id)?.number;
           if (!fromNumber) fromNumber = allNumbers.find(n => n.status === 'active')?.number;
-          if (!fromNumber && creds?.isDemo) fromNumber = '+15005550006'; 
           
           if (!creds) throw new Error("Twilio credentials missing. Please connect account first.");
           if (!fromNumber) throw new Error("No active phone numbers found. Please buy a number.");
@@ -620,7 +616,6 @@ const Agents: React.FC = () => {
               editingAgent.name,
               editingAgent.firstSentence, 
               editingAgent.voiceId, 
-              creds.isDemo,
               customBackendUrl
           );
 
@@ -869,7 +864,6 @@ const Agents: React.FC = () => {
 
       </div>
 
-      {/* 1. Folder Modal */}
       {folderModal.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
               <div className="bg-white rounded-xl shadow-xl w-full max-w-sm animate-in zoom-in-95">
@@ -898,7 +892,6 @@ const Agents: React.FC = () => {
           </div>
       )}
 
-      {/* 2. Create Agent Modal */}
       {isCreateModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
               <div className="bg-white rounded-xl shadow-xl w-full max-w-md animate-in zoom-in-95">
@@ -948,16 +941,13 @@ const Agents: React.FC = () => {
           </div>
       )}
 
-      {/* 3. TEST CALL MODAL */}
       {isTestCallOpen && editingAgent && (
           <TestCallModal agent={editingAgent} onClose={() => setIsTestCallOpen(false)} allVoices={availableVoices} />
       )}
 
-      {/* 4. EDIT AGENT FULL MODAL */}
       {editingAgent && (
         <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-md flex justify-center items-center p-4 md:p-8 animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5">
-                {/* Header */}
                 <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shrink-0 z-10">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
@@ -999,7 +989,6 @@ const Agents: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Tabs & Content */}
                 <div className="flex flex-1 min-h-0">
                     <div className="w-64 bg-slate-50 border-r border-slate-200 p-3 space-y-1">
                         {[
@@ -1128,7 +1117,6 @@ const Agents: React.FC = () => {
                                             value={editingAgent.model}
                                             onChange={(val) => setEditingAgent({...editingAgent, model: val})}
                                             options={[
-                                                // Updated model names based on task type and series.
                                                 { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', subLabel: 'Fastest response, ideal for voice calls' },
                                                 { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro', subLabel: 'Highest reasoning capability' }
                                             ]}

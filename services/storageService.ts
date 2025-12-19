@@ -20,7 +20,6 @@ const DEFAULT_FOLDERS: AgentFolder[] = [
   { id: 'appointment', name: 'Appointments' }
 ];
 
-// Start with empty numbers to avoid showing demo data without integration
 const DEFAULT_NUMBERS: PhoneNumber[] = [];
 
 const DEFAULT_AGENTS: Agent[] = [
@@ -87,9 +86,6 @@ const DEFAULT_AGENTS: Agent[] = [
 ];
 
 export const StorageService = {
-  // --- Global Settings ---
-  // Gemini key storage removed: MUST be obtained exclusively from process.env.API_KEY
-
   saveElevenLabsKey: (key: string): void => {
       localStorage.setItem(STORAGE_KEYS.ELEVENLABS_KEY, key);
   },
@@ -114,7 +110,6 @@ export const StorageService = {
       return localStorage.getItem(STORAGE_KEYS.MAKE_WEBHOOK) || '';
   },
 
-  // --- Agents ---
   getAgents: (): Agent[] => {
     const data = localStorage.getItem(STORAGE_KEYS.AGENTS);
     if (data) {
@@ -158,7 +153,6 @@ export const StorageService = {
     localStorage.setItem(STORAGE_KEYS.PHONE_NUMBERS, JSON.stringify(updatedNumbers));
   },
 
-  // --- Folders ---
   getFolders: (): AgentFolder[] => {
     const data = localStorage.getItem(STORAGE_KEYS.FOLDERS);
     return data ? JSON.parse(data) : DEFAULT_FOLDERS;
@@ -194,7 +188,6 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.AGENTS, JSON.stringify(agents));
   },
 
-  // --- Connected Accounts ---
   getAccounts: (): ConnectedAccount[] => {
     const data = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
     return data ? JSON.parse(data) : [];
@@ -216,7 +209,6 @@ export const StorageService = {
     localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
   },
 
-  // --- Phone Numbers ---
   getPhoneNumbers: (): PhoneNumber[] => {
       const data = localStorage.getItem(STORAGE_KEYS.PHONE_NUMBERS);
       return data ? JSON.parse(data) : DEFAULT_NUMBERS;
@@ -252,12 +244,11 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.PHONE_NUMBERS, JSON.stringify(numbers));
   },
 
-  // --- Twilio Credentials ---
-  saveTwilioCreds: (creds: TwilioCredential & { isDemo: boolean }): void => {
+  saveTwilioCreds: (creds: TwilioCredential): void => {
     localStorage.setItem(STORAGE_KEYS.TWILIO_CREDS, JSON.stringify(creds));
   },
 
-  getTwilioCreds: (): (TwilioCredential & { isDemo: boolean }) | null => {
+  getTwilioCreds: (): TwilioCredential | null => {
     const data = localStorage.getItem(STORAGE_KEYS.TWILIO_CREDS);
     return data ? JSON.parse(data) : null;
   },
@@ -266,7 +257,6 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.TWILIO_CREDS);
   },
 
-  // --- Custom Voices ---
   getCustomVoices: (): VoiceProfile[] => {
       const data = localStorage.getItem(STORAGE_KEYS.CUSTOM_VOICES);
       return data ? JSON.parse(data) : [];
@@ -278,7 +268,6 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.CUSTOM_VOICES, JSON.stringify(voices));
   },
 
-  // --- Logic for Assignment ---
   assignNumberToAgent: (numberId: string, agentId: string): void => {
       const numbers = StorageService.getPhoneNumbers();
       const numIndex = numbers.findIndex(n => n.id === numberId);

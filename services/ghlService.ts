@@ -1,5 +1,4 @@
 
-
 import { GHLCustomField, GHLTag } from "../types";
 
 export interface GHLConfig {
@@ -25,57 +24,11 @@ export interface GHLLocation {
 
 const GHL_API_BASE = 'https://services.leadconnectorhq.com';
 
-// Mock data for demo mode
-const MOCK_CONTACT_RESPONSE = {
-    contact: {
-        id: "ghl_contact_12345",
-        firstName: "NexusVoice",
-        lastName: "Test",
-        email: "test.connection@nexusvoice.ai",
-        phone: "+15550109999",
-        tags: ["nexus-integration-test"]
-    }
-};
-
-const MOCK_CUSTOM_FIELDS: GHLCustomField[] = [
-    { id: "cf_recording_url", name: "Call Recording Link", fieldKey: "contact.recording_url", dataType: "TEXT" },
-    { id: "cf_transcription", name: "AI Transcription", fieldKey: "contact.ai_transcription", dataType: "LARGE_TEXT" },
-    { id: "cf_summary", name: "Call Summary", fieldKey: "contact.call_summary", dataType: "LARGE_TEXT" },
-    { id: "cf_duration", name: "Call Duration", fieldKey: "contact.call_duration", dataType: "NUMBER" },
-    { id: "cf_sentiment", name: "Call Sentiment", fieldKey: "contact.sentiment", dataType: "TEXT" },
-    { id: "cf_outcome", name: "Call Outcome", fieldKey: "contact.outcome", dataType: "TEXT" },
-    { id: "cf_appointment_date", name: "Appointment Date", fieldKey: "contact.appt_date", dataType: "DATE" }
-];
-
-const MOCK_TAGS: GHLTag[] = [
-    { id: "tag_answered", name: "Call Answered" },
-    { id: "tag_no_answer", name: "No Answer" },
-    { id: "tag_voicemail", name: "Voicemail Left" },
-    { id: "tag_lead", name: "Hot Lead" },
-    { id: "tag_followup", name: "Needs Follow Up" },
-    { id: "tag_inbound", name: "Inbound Call" },
-    { id: "tag_outbound", name: "Outbound Call" },
-    { id: "tag_busy", name: "Line Busy" },
-    { id: "tag_failed", name: "Call Failed" }
-];
-
 export const GHLService = {
     /**
      * Validates connection and fetches location details (Name, ID).
      */
-    getLocation: async (apiKey: string, locationId: string, isDemo = false): Promise<GHLLocation> => {
-        if (isDemo) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
-            // Return a mock location with a name based on the ID to look dynamic
-            const mockName = locationId.length > 5 ? "Summit Dental Care" : "NexusVoice HQ";
-            return {
-                id: locationId || "loc_demo_123",
-                name: mockName,
-                city: "Austin",
-                state: "TX"
-            };
-        }
-
+    getLocation: async (apiKey: string, locationId: string): Promise<GHLLocation> => {
         if (!apiKey || !locationId) throw new Error("API Key (Token) and Location ID are required.");
 
         try {
@@ -95,11 +48,10 @@ export const GHLService = {
                 throw new Error(errorMessage);
             }
 
-            // Standard GHL V2 response for location fetch is { location: { ... } }
             return data.location;
         } catch (error: any) {
             if (error.message === 'Failed to fetch') {
-                throw new Error("Network Error: Could not reach GHL. Check CORS or use Demo Mode.");
+                throw new Error("Network Error: Could not reach GHL. Check CORS.");
             }
             throw error;
         }
@@ -109,12 +61,7 @@ export const GHLService = {
      * Tests the connection by attempting to create a test contact.
      * Uses GHL V2 API standard.
      */
-    createTestContact: async (apiKey: string, locationId?: string, isDemo = false): Promise<any> => {
-        if (isDemo) {
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
-            return MOCK_CONTACT_RESPONSE;
-        }
-
+    createTestContact: async (apiKey: string, locationId?: string): Promise<any> => {
         if (!apiKey) throw new Error("API Key (Access Token) is required.");
 
         const payload: any = {
@@ -126,7 +73,6 @@ export const GHLService = {
             source: "NexusVoice Dashboard"
         };
 
-        // GHL V2 often requires locationId in the body if the token has access to multiple locations
         if (locationId) {
             payload.locationId = locationId;
         }
@@ -146,16 +92,14 @@ export const GHLService = {
             const data = await response.json();
 
             if (!response.ok) {
-                // Handle specific GHL error formats
                 const errorMessage = data.message || data.error || 'Unknown GHL API Error';
                 throw new Error(`GHL Error: ${errorMessage}`);
             }
 
             return data;
         } catch (error: any) {
-            // Check for CORS or Network errors which are common in client-side only apps
             if (error.message === 'Failed to fetch') {
-                throw new Error("Network Error: Could not reach GHL. If running locally, this is likely a CORS issue. Try enabling 'Demo Mode' to simulate the flow.");
+                throw new Error("Network Error: Could not reach GHL. If running locally, this is likely a CORS issue.");
             }
             throw error;
         }
@@ -164,12 +108,7 @@ export const GHLService = {
     /**
      * Fetches Custom Fields for mapping.
      */
-    getCustomFields: async (apiKey: string, locationId: string, isDemo = false): Promise<GHLCustomField[]> => {
-        if (isDemo) {
-            await new Promise(r => setTimeout(r, 600));
-            return MOCK_CUSTOM_FIELDS;
-        }
-
+    getCustomFields: async (apiKey: string, locationId: string): Promise<GHLCustomField[]> => {
         const response = await fetch(`${GHL_API_BASE}/locations/${locationId}/customFields`, {
             method: 'GET',
             headers: {
@@ -186,12 +125,7 @@ export const GHLService = {
     /**
      * Fetches Tags for mapping.
      */
-    getTags: async (apiKey: string, locationId: string, isDemo = false): Promise<GHLTag[]> => {
-        if (isDemo) {
-            await new Promise(r => setTimeout(r, 600));
-            return MOCK_TAGS;
-        }
-        
+    getTags: async (apiKey: string, locationId: string): Promise<GHLTag[]> => {
         const response = await fetch(`${GHL_API_BASE}/locations/${locationId}/tags`, {
             method: 'GET',
             headers: {

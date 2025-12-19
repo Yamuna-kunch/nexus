@@ -131,7 +131,6 @@ export interface ConnectedAccount {
     locationName: string;
     apiKey: string;
     connectedAt: string; // ISO string
-    isDemo?: boolean; // Flag to indicate if this is a simulation
     lastTestStatus?: 'success' | 'error';
     lastTestMessage?: string;
 }

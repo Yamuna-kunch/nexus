@@ -12,7 +12,6 @@ const Integrations: React.FC = () => {
   const [ghlLocationId, setGhlLocationId] = useState('');
   const [isGhlConnecting, setIsGhlConnecting] = useState(false);
   const [ghlError, setGhlError] = useState('');
-  const [isGhlDemoMode, setIsGhlDemoMode] = useState(true);
   
   // List of connected accounts
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
@@ -58,15 +57,14 @@ const Integrations: React.FC = () => {
     setGhlError('');
 
     try {
-        const locationDetails = await GHLService.getLocation(ghlKey, ghlLocationId, isGhlDemoMode);
+        const locationDetails = await GHLService.getLocation(ghlKey, ghlLocationId);
         
         const newAccount: ConnectedAccount = {
             id: crypto.randomUUID(),
             locationId: locationDetails.id,
             locationName: locationDetails.name,
             apiKey: ghlKey,
-            connectedAt: new Date().toISOString(),
-            isDemo: isGhlDemoMode 
+            connectedAt: new Date().toISOString()
         };
 
         const updatedList = [...connectedAccounts, newAccount];
@@ -90,7 +88,7 @@ const Integrations: React.FC = () => {
   const handleTestAccount = async (account: ConnectedAccount) => {
     setTestingAccountId(account.id);
     try {
-        await GHLService.createTestContact(account.apiKey, account.locationId, account.isDemo);
+        await GHLService.createTestContact(account.apiKey, account.locationId);
         
         const updatedAccount: ConnectedAccount = { 
             ...account, 
@@ -184,20 +182,18 @@ app.post('/nexus-agent', async (req, res) => {
     }
 
     const userSpeech = req.body.SpeechResult;
-    // Guidelines: Always initialize with process.env.API_KEY
     const ai = new GoogleGenAI({ apiKey: API_KEY });
     
     try {
         history.push({ role: "user", parts: [{ text: userSpeech }] });
         
         const response = await ai.models.generateContent({
-            // Guidelines: gemini-3-flash-preview for text tasks.
             model: "gemini-3-flash-preview",
             contents: { parts: [{ text: \`SYSTEM: \${systemPrompt}\\n\\nUSER: \${userSpeech}\` }] },
             config: { temperature: temperature }
         });
 
-        const aiText = response.text; // Access .text directly
+        const aiText = response.text; 
         history.push({ role: "model", parts: [{ text: aiText }] });
 
         const audioUrl = await generateAIVoice(aiText, voiceId, callSid);
@@ -228,10 +224,7 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         
-        {/* Left Column: Outbound Triggers */}
         <div className="space-y-8">
-            
-            {/* Make.com Config */}
             <Card className="border-purple-200 shadow-md">
                 <div className="px-6 py-5 bg-gradient-to-r from-purple-50 to-white border-b border-purple-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -273,7 +266,6 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
                 </div>
             </Card>
 
-            {/* Custom Server Config */}
             <Card className="border-indigo-200 shadow-md">
                 <div className="px-6 py-5 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -337,7 +329,6 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
             </Card>
         </div>
 
-        {/* Right Column: GoHighLevel (Existing) */}
         <Card className="relative overflow-hidden flex flex-col min-h-[500px]">
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
             <Workflow className="w-32 h-32" />
@@ -353,8 +344,6 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
           </div>
           
           <div className="space-y-6 flex-1">
-            
-            {/* Connection Form */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-4">
                 <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <Plus className="w-4 h-4" /> Add New Account
@@ -383,21 +372,7 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
                     </div>
                 </div>
 
-                {/* Demo Mode Toggle */}
-                <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center gap-2">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                checked={isGhlDemoMode} 
-                                onChange={e => setIsGhlDemoMode(e.target.checked)} 
-                                className="sr-only peer" 
-                            />
-                            <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#1a73e8]"></div>
-                        </label>
-                        <span className="text-xs text-slate-500">Demo Mode</span>
-                    </div>
-
+                <div className="flex items-center justify-end pt-2">
                     <button 
                         onClick={handleConnectAccount}
                         disabled={isGhlConnecting || !ghlKey || !ghlLocationId}
@@ -415,7 +390,6 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
                 )}
             </div>
 
-            {/* Connected Accounts List */}
             <div>
                 <h4 className="text-sm font-semibold text-slate-900 mb-3">Connected Accounts ({connectedAccounts.length})</h4>
                 
@@ -436,7 +410,6 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
                                     <div className="flex items-center gap-1">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                         <span className="text-xs font-medium text-emerald-600">Active</span>
-                                        {account.isDemo && <span className="text-[10px] bg-slate-100 text-slate-500 px-1 rounded ml-1">Demo</span>}
                                     </div>
                                 </div>
                                 
@@ -473,7 +446,6 @@ app.listen(PORT, () => console.log(\`NexusVoice AI Server live on \${PORT}\`));
                     </div>
                 )}
             </div>
-
           </div>
         </Card>
       </div>

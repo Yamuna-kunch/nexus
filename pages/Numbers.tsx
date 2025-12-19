@@ -21,7 +21,6 @@ const Numbers: React.FC = () => {
   // Connection State
   const [credentials, setCredentials] = useState<TwilioCredential | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(true);
   const [balance, setBalance] = useState<string | null>(null);
 
   // Form State
@@ -47,15 +46,10 @@ const Numbers: React.FC = () => {
     const storedCreds = StorageService.getTwilioCreds();
     if (storedCreds) {
       setCredentials({ accountSid: storedCreds.accountSid, authToken: storedCreds.authToken });
-      setIsDemoMode(storedCreds.isDemo);
       setIsConnected(true);
       setSidInput(storedCreds.accountSid);
       setTokenInput(storedCreds.authToken);
-      setBalance(storedCreds.isDemo ? '$50.00 (Demo)' : 'Loading...');
-      if(!storedCreds.isDemo) {
-          // In real app, fetch balance here
-          setBalance('Active');
-      }
+      setBalance('Active');
     }
   }, []);
 
@@ -69,8 +63,7 @@ const Numbers: React.FC = () => {
   const loadMyNumbers = async () => {
     setIsLoadingNumbers(true);
     try {
-      // 1. Fetch from API (Mock or Real)
-      const data = await TwilioService.getIncomingNumbers(credentials!, isDemoMode);
+      const data = await TwilioService.getIncomingNumbers(credentials!);
       
       const mappedFromApi: PhoneNumber[] = data.incoming_phone_numbers.map((n: any) => ({
         id: n.sid,
@@ -81,27 +74,21 @@ const Numbers: React.FC = () => {
         status: 'active',
       }));
 
-      // 2. Get existing local storage to preserve assignments
       const storedNumbers = StorageService.getPhoneNumbers();
       
-      // 3. Merge: Take API numbers as source of truth, attach local assignments
       const merged: PhoneNumber[] = mappedFromApi.map(apiNum => {
           const localNum = storedNumbers.find(s => s.id === apiNum.id);
           return {
               ...apiNum,
-              assignedAgentId: localNum?.assignedAgentId // Preserve assignment
+              assignedAgentId: localNum?.assignedAgentId 
           };
       });
 
-      // 4. Update storage strictly (Remove dummy/seed numbers that are not in API response)
       StorageService.replacePhoneNumbers(merged);
-      
-      // 5. Update UI
       setMyNumbers(merged);
       
     } catch (err) {
       console.error(err);
-      // Fallback: If API fails completely, just show what we have locally
       setMyNumbers(StorageService.getPhoneNumbers());
     } finally {
       setIsLoadingNumbers(false);
@@ -114,23 +101,23 @@ const Numbers: React.FC = () => {
     setConnectError('');
 
     const creds = { accountSid: sidInput, authToken: tokenInput };
-    if (isDemoMode && (!sidInput || !tokenInput)) {
-        creds.accountSid = 'AC_DEMO_ACCOUNT_SID_12345';
-        creds.authToken = 'AUTH_TOKEN_DEMO';
+    if (!sidInput || !tokenInput) {
+        setConnectError('Account SID and Auth Token are required.');
+        setIsConnecting(false);
+        return;
     }
 
     try {
-      await TwilioService.validate(creds, isDemoMode);
+      await TwilioService.validate(creds);
       
       setCredentials(creds);
       setIsConnected(true);
-      setBalance(isDemoMode ? '$50.00 (Demo)' : 'Active');
+      setBalance('Active');
       
-      // Persist credentials
-      StorageService.saveTwilioCreds({ ...creds, isDemo: isDemoMode });
+      StorageService.saveTwilioCreds(creds);
 
     } catch (err) {
-      setConnectError('Could not connect. Check credentials or enable Demo Mode.');
+      setConnectError('Could not connect. Please check your credentials.');
     } finally {
       setIsConnecting(false);
     }
@@ -150,7 +137,7 @@ const Numbers: React.FC = () => {
     if (!credentials) return;
     setIsSearching(true);
     try {
-      const res = await TwilioService.searchAvailableNumbers(credentials, searchCountry, searchAreaCode, isDemoMode);
+      const res = await TwilioService.searchAvailableNumbers(credentials, searchCountry, searchAreaCode);
       
       const mappedResults: TwilioPhoneNumber[] = res.available_phone_numbers.map((n: any) => ({
         phoneNumber: n.phone_number,
@@ -175,9 +162,8 @@ const Numbers: React.FC = () => {
     if (!credentials) return;
     setBuyingNumber(phoneNumber);
     try {
-      const bought = await TwilioService.buyNumber(credentials, phoneNumber, isDemoMode);
+      const bought = await TwilioService.buyNumber(credentials, phoneNumber);
       
-      // Save the new number to storage (append it, because we just bought it)
       const newPhone: PhoneNumber = {
           id: bought.sid,
           number: bought.phone_number,
@@ -188,10 +174,7 @@ const Numbers: React.FC = () => {
       };
       
       StorageService.savePhoneNumber(newPhone);
-      
       setActiveTab('my-numbers');
-      // Tab change logic will trigger loadMyNumbers via useEffect, re-syncing everything
-      
     } catch (err) {
       alert("Failed to purchase number.");
     } finally {
@@ -205,11 +188,10 @@ const Numbers: React.FC = () => {
       } else {
           StorageService.unassignNumber(numberId);
       }
-      // Update local view
       setMyNumbers(StorageService.getPhoneNumbers());
   };
 
-  const agents = StorageService.getAgents(); // For dropdown
+  const agents = StorageService.getAgents(); 
 
   if (!isConnected) {
     return (
@@ -241,24 +223,6 @@ const Numbers: React.FC = () => {
                         className="w-full border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 py-2.5 px-3"
                     />
                 </div>
-                
-                <div className="bg-slate-50 p-4 rounded-lg flex items-start gap-3 border border-slate-100">
-                    <div className="pt-0.5">
-                       <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-slate-900">Demo Mode</h4>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                              <input type="checkbox" checked={isDemoMode} onChange={e => setIsDemoMode(e.target.checked)} className="sr-only peer" />
-                              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                            </label>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                            Enables a fully functional simulation without real charges.
-                        </p>
-                    </div>
-                </div>
 
                 {connectError && (
                     <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
@@ -276,7 +240,7 @@ const Numbers: React.FC = () => {
                 </button>
             </form>
             <div className="mt-6 text-center">
-                <a href="#" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
                     Get credentials from Twilio Console &rarr;
                 </a>
             </div>
@@ -287,7 +251,6 @@ const Numbers: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Phone Numbers</h1>
@@ -362,7 +325,7 @@ const Numbers: React.FC = () => {
                           <div>
                             <p className="font-bold text-slate-900">{num.friendlyName || num.number}</p>
                             <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                                <span>{num.country === 'US' ? '🇺🇸 United States' : `🇬🇧 ${num.country}`}</span>
+                                <span>{num.country === 'US' ? '🇺🇸 United States' : `🌍 ${num.country}`}</span>
                             </div>
                           </div>
                         </div>
@@ -407,7 +370,6 @@ const Numbers: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-6">
-           {/* Search Filters */}
            <Card className="p-6 bg-slate-900 text-white border-slate-800 shadow-xl">
              <div className="flex flex-col md:flex-row gap-4 items-end">
                <div className="flex-1 w-full">
@@ -447,7 +409,6 @@ const Numbers: React.FC = () => {
              </div>
            </Card>
 
-           {/* Results Grid */}
            {searchResults.length > 0 && (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {searchResults.map((num) => (
